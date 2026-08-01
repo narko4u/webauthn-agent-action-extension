@@ -256,6 +256,7 @@ def real_hardware_flow(args: argparse.Namespace) -> Dict[str, Any]:
         "rp_id": rp_id,
         "origin": args.origin,
         "credential_id": b64u(cred["credential_id"]),
+        "public_key_pem": public_key_pem.decode("utf-8"),
         "action_digest": digest.hex(),
         "signature": signature.hex(),
         "flags": {"up": result["up"], "uv": result["uv"]},
