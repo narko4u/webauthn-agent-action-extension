@@ -139,6 +139,26 @@ Series (CTAP 2.2 attested), Nitrokey 3. For development without hardware,
 use the `VirtualAuthenticator` (this repo) or the FIDO2 MDS virtual
 authenticator.
 
+### Hardware demo (real device)
+
+`examples/hardware_demo.py` signs an agent action on a physical FIDO2 device
+and prints a verifiable attestation evidence block — the device tap is the
+human-consent proof (EU AI Act Art. 12/14):
+
+```bash
+pip install fido2 cryptography
+python examples/hardware_demo.py              # real device over USB (CTAP2)
+python examples/hardware_demo.py --simulate   # no hardware needed
+python examples/hardware_demo.py --output evidence.json --json
+```
+
+You will be prompted to tap the key twice: once to register a fresh
+credential, once to sign the action digest. Real authenticator firmware does
+not implement the `txAuthAgent` extension yet, so the canonical action digest
+is carried as the WebAuthn challenge; the extension wire format itself is
+proven by the `VirtualAuthenticator`. Both halves together form the complete
+hardware attestation story.
+
 ## EU AI Act mapping
 
 | Article | Requirement | txAuthAgent |
