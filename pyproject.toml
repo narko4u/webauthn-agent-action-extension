@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "txauthagent"
+version = "0.2.0"
+description = "Reference implementation of the txAuthAgent WebAuthn extension — hardware-backed authorization for AI agent actions"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Empire Labs Pty Ltd" }]
+keywords = ["webauthn", "fido2", "ai-agents", "authorization", "euaiact", "web3"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security :: Cryptography",
+]
+
+[project.scripts]
+txauthagent = "txauthagent.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["txauthagent*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
