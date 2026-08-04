@@ -2,6 +2,8 @@
 
 **Hardware-backed authorization for AI agent actions.**
 
+**Layer:** Hardware attestation layer for the Empire Stack — above ACI, feeds WitnessOS evidence.
+
 `txAuthAgent` is an **application profile** on top of the W3C WebAuthn
 **`sign` extension** (w3c/webauthn PR #2078). The sign extension gives the
 cryptographic primitive — a hardware-bound **signing key pair, separate from
@@ -14,7 +16,9 @@ The result is a cryptographically verifiable, human-consented audit trail for
 autonomous agent actions, satisfying the EU AI Act's tamper-evident logging
 (Art. 12) and human oversight (Art. 14) requirements **in hardware, not in
 policy** — and verifiable by *any* party against the published signing key,
-without breaking WebAuthn's pairwise-credential privacy.
+without breaking WebAuthn's pairwise-credential privacy. The signed action
+evidence this profile produces is consumed by **WitnessOS** for governance
+and compliance verification.
 
 This repository is the open **reference implementation** of the draft spec.
 It is dependency-free, testable without hardware, and demonstrates the full
@@ -251,3 +255,7 @@ CC BY 4.0. Built by **Empire Labs Pty Ltd** as part of the **Empire Stack**
 (ACI / AIP / AJSON) — three open specifications for autonomous agent commerce.
 
 www.empirelabs.com.au
+
+---
+
+<sub>Part of the [WitnessOS launch family](https://github.com/narko4u/witnessos): [witnessos-alpha](https://github.com/narko4u/witnessos-alpha) · [witnessos-compliance](https://github.com/narko4u/witnessos-compliance) · [eu-ai-act-compliance-grade](https://github.com/narko4u/eu-ai-act-compliance-grade) · [witnessos-rogue-agent-audit](https://github.com/narko4u/witnessos-rogue-agent-audit) · [witnessos-agent-asset-registry](https://github.com/narko4u/witnessos-agent-asset-registry) · [witnessos-verifier](https://github.com/narko4u/witnessos-verifier) · [agent-interaction-specs](https://github.com/narko4u/agent-interaction-specs) · [aci-spec](https://github.com/narko4u/aci-spec) · [aip-spec](https://github.com/narko4u/aip-spec) · [ajson](https://github.com/narko4u/ajson) — [Empire Labs Pty Ltd](https://www.empirelabs.com.au)</sub>
