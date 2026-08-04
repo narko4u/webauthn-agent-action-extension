@@ -19,10 +19,10 @@ import hashlib
 import secrets
 import sys
 
-from .digest import compute_action_digest, canonical_json
+from .digest import canonical_cbor, compute_action_digest
 from .extension import EXTENSION_ID, decode_output_cbor
 from .payload import build_action_payload
-from .verify import verify_agent_action, verify_agent_action_cbor
+from .verify import ALGORITHM_NAMES, verify_agent_action, verify_agent_action_cbor
 from .virtual import VirtualAuthenticator
 
 
@@ -61,12 +61,12 @@ def demo() -> int:
           f"({payload['agent_identity']['aci_uri']})")
     digest = compute_action_digest(payload)
     print(f"    digest       : sha256:{digest.hex()[:32]}...")
-    print(f"    canonical    : {canonical_json(payload).decode()[:120]}...")
+    print(f"    canonical    : CBOR {canonical_cbor(payload).hex()[:120]}...")
 
     # 2. Virtual authenticator signs (simulates hardware tap)
     key = VirtualAuthenticator(rp_id="empirelabs.com.au")
     print("\n[2] Authenticator (virtual hardware key)")
-    print(f"    algorithm    : {key.algorithm} (EdDSA)")
+    print(f"    algorithm    : {ALGORITHM_NAMES[key.algorithm]}")
     print(f"    credential   : {key.credential_id.hex()[:16]}...")
     cbor_blob = key.sign_action_cbor(payload)
     outputs = decode_output_cbor(cbor_blob)

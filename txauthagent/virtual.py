@@ -4,7 +4,9 @@ Real deployments use a CTAP 2.2+ hardware authenticator (YubiKey 5, Ledger
 FIDO2 app, Nitrokey 3). This module simulates the authenticator behaviour so
 the wire format and verification logic can be exercised without hardware:
 
-- stores an Ed25519 keypair (acting as the "hardware" credential)
+- stores an ES256 (P-256) keypair by default (the universally supported FIDO2
+  algorithm — YubiKey 5 series signs ES256 only); EdDSA (Ed25519) is available
+  for devices that provide it (Nitrokey 3, Ledger)
 - simulates the physical user-presence gesture via `tap=True`
 - returns the same CBOR extension output a real key would produce
 
@@ -39,10 +41,12 @@ class VirtualAuthenticator:
     """A software stand-in for a hardware security key.
 
     Args:
-        algorithm: COSE algorithm for signing — ALG_EDDSA (-8, default) or ALG_ES256 (-7).
+        algorithm: COSE algorithm for signing — ALG_ES256 (-7, default; P-256 is
+            universally supported by FIDO2 hardware) or ALG_EDDSA (-8, Ed25519,
+            where the device supports it).
     """
 
-    def __init__(self, algorithm: int = ALG_EDDSA, rp_id: str = "empirelabs.com.au") -> None:
+    def __init__(self, algorithm: int = ALG_ES256, rp_id: str = "empirelabs.com.au") -> None:
         self.algorithm = algorithm
         self.rp_id = rp_id
         self.rp_id_hash = hashlib.sha256(rp_id.encode("utf-8")).digest()

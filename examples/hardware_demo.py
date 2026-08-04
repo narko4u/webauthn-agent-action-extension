@@ -192,7 +192,7 @@ def real_hardware_flow(args: argparse.Namespace) -> Dict[str, Any]:
         {"id": rp_id, "name": rp_id},
         {"id": user_id, "name": "Sovereign", "displayName": "Sovereign"},
         challenge_register,
-        [{"type": "public-key", "alg": ALG_EDDSA}, {"type": "public-key", "alg": ALG_ES256}],
+        [{"type": "public-key", "alg": ALG_ES256}, {"type": "public-key", "alg": ALG_EDDSA}],
         [],
     )
     fmt = attestation.get("fmt")

@@ -8,8 +8,17 @@ from txauthagent.virtual import VirtualAuthenticator, generate_credential_id
 from helpers import make_payload
 
 
-def test_eddsa_signing_produces_extension_output():
+def test_es256_is_default_algorithm():
     key = VirtualAuthenticator()
+    assert key.algorithm == ALG_ES256
+    blob = key.sign_action_cbor(make_payload())
+    entry = decode_output_cbor(blob)[EXTENSION_ID]
+    assert entry["algorithm"] == ALG_ES256
+    assert len(entry["agent_action_sig"]) in (64, 70, 71, 72)  # DER-encoded ECDSA
+
+
+def test_eddsa_signing_produces_extension_output():
+    key = VirtualAuthenticator(algorithm=ALG_EDDSA)
     blob = key.sign_action_cbor(make_payload())
     outputs = decode_output_cbor(blob)
     entry = outputs[EXTENSION_ID]

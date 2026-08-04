@@ -2,7 +2,7 @@
 
 **Extension Identifier:** `txAuthAgent`
 
-**Status:** Draft v0.2 — cleared for public posting (Sovereign review complete, 2026-08-01)
+**Status:** Draft v0.3 — ES256-first algorithm policy, deterministic-CBOR digest, gap analysis (2026-08-04)
 **Proposed by:** Empire Labs Pty Ltd
 **Target Registry:** IANA "WebAuthn Extension Identifiers" registry (per RFC 8809)
 **Specification Required:** Yes (Expert Review per WebAuthn §12.4)
@@ -49,6 +49,58 @@ The extension is independently specified — use it with or without the full Emp
 | **Extension identifier** | `txAuthAgent` |
 | **Type** | Registration extension AND authentication extension |
 | **Authenticator support** | Required — uses CTAP 2.2+ signature capability |
+
+### 3.1 Alternatives considered: why a new extension identifier
+
+A reviewer's first question is: WebAuthn already has transaction-authorization
+extensions, and a plain assertion can carry a digest in the challenge — why a
+new identifier? The honest answer is that `txAuthAgent` fills the gaps those
+mechanisms leave for *agent authorization*, and it ships alongside a bootstrap
+that works on hardware available today.
+
+**txAuthSimple / txAuthGeneric (existing WebAuthn L2/L3 extensions).** These
+were designed for human transaction confirmation: the authenticator displays a
+short text (txAuthSimple) or CBOR content (txAuthGeneric) and the human
+approves. They do not define:
+
+- a canonical, machine-verifiable digest of a *structured* action payload —
+  the output semantics return the displayed content, not a signature over a
+  well-defined action schema;
+- an agent-identity binding (ACI URI / agent name / DID) as a first-class
+  field, so a third-party verifier cannot independently confirm *which agent*
+  was authorized;
+- a registration-time link between an agent identity and a specific hardware
+  credential.
+
+For a human reading a prompt, txAuthGeneric suffices. For a counterparty or
+regulator verifying an *agent's* action later, without interacting with the
+agent, the structured canonical-digest + agent-identity design is what makes
+verification possible.
+
+**Challenge-carrier profile (plain `navigator.credentials.get()` with the
+action digest as the challenge).** This is fully standard and works on every
+shipping FIDO2 authenticator today — which is exactly why the reference
+implementation's `examples/hardware_demo.py` uses it as the hardware bootstrap
+path. Its limitations:
+
+- the `challenge` field has platform-defined semantics (randomness, replay
+  protection); carrying a *deterministic* action digest there can collide with
+  client/authenticator expectations, and large payloads risk platform size
+  limits;
+- without a registered identifier there is no schema anchor — every relying
+  party would implement its own payload convention, so no ecosystem-level
+  interop or third-party verification standard exists;
+- the extension identifier is what lets an RP say "this assertion means the
+  agent authorized *this* action" in a way any verifier can rely on.
+
+**Design choice.** `txAuthAgent` defines the identifier, the canonical digest
+(§5.3), and the output schema so verification is interoperable — while the
+challenge-carrier profile remains the pragmatic path for hardware that does
+not yet implement the extension. Both halves are proven by the reference
+implementation. A future companion pattern (session-scoped signing via the
+`prf`/`hmac-secret` extension, one human tap per session instead of per
+action) is under consideration to reduce operational friction for high-volume
+agents.
 
 ---
 
@@ -139,6 +191,32 @@ The RP performs these checks:
 
 If all checks pass: the action is **hardware-attested agent authorization** that any independent party can cryptographically verify.
 
+### 5.3 Canonical action digest
+
+The authenticator signs a single digest over the action payload, defined as:
+
+```
+digest = SHA-256( "txAuthAgent" || 0x00 || deterministic-CBOR(payload) )
+```
+
+where:
+
+- `"txAuthAgent"` is the 11-byte ASCII extension identifier (domain
+  separation from other signed data),
+- `0x00` is a single zero byte version separator,
+- `deterministic-CBOR(payload)` is the canonical payload (see §4.2) encoded
+  with the deterministic rules of RFC 8949 §4.2.1: map keys sorted in the
+  bytewise lexicographic order of their deterministic encodings (for the
+  text-string keys of the action payload this is the length-first order of
+  §4.2.3), definite-length headers, no floating point.
+
+Deterministic CBOR is normatively defined and byte-for-byte reproducible by
+any conforming encoder regardless of key insertion order or platform — unlike
+"canonical JSON" (sorted keys, whitespace-free), whose string canonicalisation
+is underspecified across implementations. The reference implementation
+(`txauthagent/digest.py`) ships the digest computation and RFC 8949 §4.2.1
+encoder; test vectors live in `tests/test_digest.py`.
+
 ---
 
 ## 6. EU AI Act Compliance Context
@@ -177,14 +255,13 @@ Any third party can verify agent action signatures **without interacting with th
 | Component | Minimum Requirement |
 |-----------|-------------------|
 | Authenticator | CTAP 2.2+ supporting resident key storage + signature extension |
-| Algorithm | EdDSA (COSE -8) or ES256 (COSE -7) |
+| Algorithm | ES256 (COSE -7) primary — universally supported; EdDSA (COSE -8) where device-supported |
 | Transport | USB-C, NFC, or BLE |
 
 **Supported keys (confirmed today):**
-- **Ledger Flex / Stax** — supports Ed25519 via CTAP 2.2+ FIDO2 app
-- **Ledger Nano X / S Plus** — via Ledger FIDO2 app
-- **YubiKey 5 Series** — CTAP 2.2 attested, Ed25519/ES384
-- **Nitrokey 3** — open-source, FIDO2-certified, Ed25519 support
+- **YubiKey 5 Series** — CTAP 2.2 attested, **ES256 (P-256) only** (no Ed25519 in FIDO2)
+- **Ledger Flex / Stax / Nano X / S Plus** — via Ledger FIDO2 app (ES256)
+- **Nitrokey 3** — open-source, FIDO2-certified (ES256/EdDSA)
 
 **Testing without hardware:** Use the FIDO2 MDS virtual authenticator or WebAuthn emulator during development — physical key only required for demo. The reference implementation in this repo ships a `VirtualAuthenticator` that exercises the full wire format without hardware.
 
@@ -285,6 +362,7 @@ The following open questions from v0.1 were resolved by Sovereign on behalf of E
 
 - **v0.1** — 2026-08-01: Draft for Sovereign review (Porgie)
 - **v0.2** — 2026-08-01: Sovereign review complete. Fixed section numbering (duplicate §5 split into §5 Processing Results / §6 EU AI Act), corrected CBOR field typos (`agent_action_sig`, `agent_cid`), added `algorithm` to the wire format, resolved open questions (§10), added reference implementation link. Cleared for public posting.
+- **v0.3** — 2026-08-04: Expert-review hardening (target reviewer: Emil Lundberg, Yubico — named in §9). (1) Algorithm policy corrected to **ES256 primary** — YubiKey 5 Series signs ES256 (P-256) only; the earlier Ed25519/ES384 claims were factually wrong and are removed. (2) Canonical action digest redefined from canonical-JSON to **deterministic CBOR (RFC 8949 §4.2.1)** — see §5.3; reference implementation + tests updated. (3) Added §3.1 **gap analysis** (vs txAuthSimple/txAuthGeneric and the challenge-carrier profile) answering the first question any WebAuthn reviewer asks. (4) Reference implementation default algorithm changed to ES256 (`VirtualAuthenticator`). File name retained as v0.2 for link stability; content is v0.3.
 
 ---
 

@@ -46,6 +46,35 @@ def test_deterministic_bytes():
     assert a == b
 
 
+def test_deterministic_mode_sorts_map_keys():
+    assert cbor.dumps({"b": 1, "a": 2}, deterministic=True) == b"\xa2\x61a\x02\x61b\x01"
+
+
+def test_deterministic_mode_sorts_nested_maps():
+    blob = cbor.dumps({"z": {"y": 1, "x": 2}, "a": 3}, deterministic=True)
+    assert cbor.loads(blob) == {"z": {"y": 1, "x": 2}, "a": 3}
+    # keys sorted: "a" then "z", and inside z: "x" then "y"
+    assert blob == b"\xa2\x61a\x03\x61z\xa2\x61x\x02\x61y\x01"
+
+
+def test_deterministic_mode_ignores_insertion_order():
+    a = cbor.dumps({"b": 1, "a": 2}, deterministic=True)
+    b = cbor.dumps({"a": 2, "b": 1}, deterministic=True)
+    assert a == b
+
+
+def test_deterministic_mode_sorts_by_full_encoding():
+    # RFC 8949 §4.2.1: bytewise lexicographic order of the full deterministic
+    # encodings — the length header byte participates, so "b" (0x6162) sorts
+    # before "ab" (0x6261 0x61).
+    blob = cbor.dumps({"ab": 1, "b": 2}, deterministic=True)
+    assert blob == b"\xa2\x61b\x02\x62ab\x01"
+
+
+def test_default_mode_preserves_insertion_order():
+    assert cbor.dumps({"b": 1, "a": 2}) == b"\xa2\x61b\x01\x61a\x02"
+
+
 def test_known_vector_unsigned():
     assert cbor.dumps(0) == b"\x00"
     assert cbor.dumps(1) == b"\x01"

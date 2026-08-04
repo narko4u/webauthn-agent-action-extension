@@ -66,12 +66,14 @@ def test_canonical_stable_and_sorted():
     p = make_payload()
     ca, cb = payload_to_canonical_dict(p), payload_to_canonical_dict(p)
     assert ca == cb
-    # JSON serialization sorts keys for canonical bytes (digest stability)
-    import json
+    # Deterministic CBOR sorts map keys, so the canonical dict must produce
+    # byte-identical output regardless of encoder insertion order.
+    from txauthagent import cbor
 
     sorted_keys = sorted(payload_to_canonical_dict(p).keys())
-    raw = json.dumps(payload_to_canonical_dict(p), sort_keys=True).encode()
-    assert raw.startswith(b'{"action_descriptor":')
+    raw = cbor.dumps(payload_to_canonical_dict(p), deterministic=True)
+    # RFC 8949 §4.2.1 bytewise sort → shortest key ("prompt") first
+    assert raw.startswith(b"\xa5\x66prompt")
     assert sorted_keys[0] == "action_descriptor"
     # canonical output keeps required fields
     assert "prompt" in ca

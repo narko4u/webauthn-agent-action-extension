@@ -29,13 +29,19 @@ AI Act's high-risk provisions enforceable from August 2, 2026, autonomous
 agents need a standards-based way to prove a human consented, in hardware,
 to each action they take. `txAuthAgent` fills that gap.
 
+**Why a new extension identifier?** WebAuthn already ships transaction-auth
+extensions (`txAuthSimple`/`txAuthGeneric`) and a plain assertion can carry a
+digest as the challenge. Those mechanisms fall short of a *verifiable agent
+authorization standard* — the full gap analysis (and the bootstrap path that
+works on today's hardware) is in spec §3.1.
+
 ## How it works
 
 ```
 ┌──────────────┐   action payload   ┌──────────────────┐   tap!   ┌───────────────┐
 │  AI Agent    │ ─────────────────▶ │  Hardware Key     │ ───────▶ │    Signs      │
-│ (ACI/AIP)    │                    │ (CTAP 2.2+,      │          │  (Ed25519/    │
-└──────────────┘                    │  EdDSA/ES256)    │          │   ES256)      │
+│ (ACI/AIP)    │                    │ (CTAP 2.2+,      │          │  (ES256/      │
+└──────────────┘                    │  ES256/EdDSA)    │          │   EdDSA)      │
         ▲                           └──────────────────┘          └──────┬────────┘
         │                                                                │
         │                  CBOR extension output (signed digest)          ▼
@@ -50,7 +56,7 @@ to each action they take. `txAuthAgent` fills that gap.
    extension input carrying the payload.
 3. The authenticator presents the action to the human and requires a physical
    gesture (press/tap) before signing.
-4. The authenticator returns a CBOR extension output: EdDSA/ES256 signature
+4. The authenticator returns a CBOR extension output: ES256/EdDSA signature
    over the canonical action digest plus UP/UV flags.
 5. Any relying party verifies the signature against the registered credential
    — no interaction with the agent, no secret validation server.
@@ -84,7 +90,7 @@ python3
 >>> result = verify_agent_action_cbor(payload, blob, key.public_key_pem,
 ...                                   expected_rp_id="empirelabs.com.au")
 >>> print(result.up, result.algorithm_name)
-True EdDSA (Ed25519)
+True ES256 (P-256)
 ```
 
 ## Wire format (summary)
@@ -115,27 +121,30 @@ Extension output (CBOR, wrapped in `AuthenticationExtensionsClientOutputsJSON`):
 
 ```
 txAuthAgent: {
-    agent_action_sig: bytes,   // Ed25519/ES256 signature over action digest
+    agent_action_sig: bytes,   // ES256/EdDSA signature over action digest
     agent_cid: bytes,          // credential id
-    algorithm: -8 | -7,        // COSE — EdDSA or ES256
+    algorithm: -7 | -8,        // COSE — ES256 or EdDSA
     rp_id_hash: bytes,         // SHA-256 of RP ID
     flags: { up: true, uv: bool }
 }
 ```
 
-Action digest: `SHA-256("txAuthAgent" || 0x00 || canonical-JSON(payload))`,
-where canonical-JSON is sorted-key, whitespace-free.
+Action digest: `SHA-256("txAuthAgent" || 0x00 || deterministic-CBOR(payload))`,
+where deterministic-CBOR is RFC 8949 §4.2.1 (map keys sorted bytewise by their
+deterministic encodings, definite lengths) — byte-for-byte identical across
+implementations.
 
 ## Hardware
 
 | Component | Minimum |
 |-----------|---------|
 | Authenticator | CTAP 2.2+ with resident key + signature extension |
-| Algorithm | EdDSA (COSE -8) or ES256 (COSE -7) |
+| Algorithm | ES256 (COSE -7) primary — universally supported; EdDSA (COSE -8) where device-supported |
 | Transport | USB-C, NFC, BLE |
 
-Confirmed working with Ledger Flex/Stax/Nano X/S Plus (FIDO2 app), YubiKey 5
-Series (CTAP 2.2 attested), Nitrokey 3. For development without hardware,
+Confirmed working with Ledger Flex/Stax/Nano X/S Plus (FIDO2 app, ES256),
+YubiKey 5 Series (CTAP 2.2 attested — **ES256 only**, no Ed25519), Nitrokey 3
+(ES256/EdDSA). For development without hardware,
 use the `VirtualAuthenticator` (this repo) or the FIDO2 MDS virtual
 authenticator.
 

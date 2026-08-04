@@ -20,9 +20,23 @@ __all__ = ["dumps", "loads", "CBORError"]
 CBORError = ValueError
 
 
+def _key_sort_bytes(key) -> bytes:
+    """RFC 8949 §4.2.1 deterministic map-key sort key.
+
+    Keys are sorted in the bytewise lexicographic order of their
+    deterministic (preferred-serialization) encodings. For text-string keys
+    the length header byte participates, so a shorter string sorts before a
+    longer one (equivalent to the length-first ordering of §4.2.3).
+    """
+    enc = _Encoder()
+    enc.encode(key)
+    return bytes(enc.out)
+
+
 class _Encoder:
-    def __init__(self) -> None:
+    def __init__(self, deterministic: bool = False) -> None:
         self.out = bytearray()
+        self.deterministic = deterministic
 
     def _head(self, major: int, value: int) -> None:
         if value < 24:
@@ -67,7 +81,10 @@ class _Encoder:
                 self.encode(item)
         elif isinstance(obj, dict):
             self._head(5, len(obj))
-            for k, v in obj.items():
+            items = obj.items()
+            if self.deterministic:
+                items = sorted(items, key=lambda kv: _key_sort_bytes(kv[0]))
+            for k, v in items:
                 if not isinstance(k, (str, int, bytes)):
                     raise CBORError(f"unsupported map key type: {type(k)!r}")
                 self.encode(k)
@@ -80,8 +97,14 @@ class _Encoder:
         return bytes(self.out)
 
 
-def dumps(obj) -> bytes:
-    return _Encoder().dumps(obj)
+def dumps(obj, deterministic: bool = False) -> bytes:
+    """CBOR-encode ``obj``.
+
+    With ``deterministic=True`` map keys are sorted per RFC 8949 §4.2.1 so the
+    output bytes are canonical — used for digest computation. Default output
+    preserves insertion order (backwards compatible with the wire format).
+    """
+    return _Encoder(deterministic=deterministic).dumps(obj)
 
 
 class _Decoder:

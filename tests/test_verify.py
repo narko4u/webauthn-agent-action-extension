@@ -21,7 +21,7 @@ def test_verify_happy_path():
                                       expected_rp_id="empirelabs.com.au")
     assert isinstance(result, VerificationResult)
     assert result.up is True
-    assert result.algorithm == ALG_EDDSA
+    assert result.algorithm == ALG_ES256  # default algorithm
 
 
 def test_verify_es256():
