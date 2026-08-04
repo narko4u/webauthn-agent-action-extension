@@ -295,6 +295,9 @@ def simulated_flow(args: argparse.Namespace) -> Dict[str, Any]:
     digest = compute_action_digest(payload)
 
     key = VirtualAuthenticator(rp_id=args.rp_id)
+    # Registration: generate + attest the signing key (sign extension).
+    reg_output = key.register()
+    generated = reg_output["sign"]["generatedKey"]
     blob = key.sign_action_cbor(payload)  # simulates the tap
     result = verify_agent_action_cbor(
         payload, blob, key.public_key_pem, expected_rp_id=args.rp_id
@@ -304,13 +307,14 @@ def simulated_flow(args: argparse.Namespace) -> Dict[str, Any]:
         "device": "VirtualAuthenticator (software)",
         "aaguid": "00000000-0000-0000-0000-000000000000",
         "transport": "simulated",
-        "attestation_format": "n/a",
+        "attestation_format": "packed",
         "algorithm": result.algorithm,
         "rp_id": args.rp_id,
         "origin": args.origin,
         "credential_id": b64u(result.credential_id),
         "action_digest": digest.hex(),
         "signature": "(inside CBOR extension output)",
+        "signing_key": b64u(generated["publicKey"]),
         "flags": {"up": result.up, "uv": result.uv},
         "sign_count": 0,
         "client_data_hash": "(n/a — direct digest signature)",

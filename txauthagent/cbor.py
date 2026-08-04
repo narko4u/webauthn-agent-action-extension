@@ -14,6 +14,7 @@ Example:
 from __future__ import annotations
 
 import struct
+from typing import Any
 
 __all__ = ["dumps", "loads", "CBORError"]
 
@@ -173,7 +174,7 @@ class _Decoder:
         raise CBORError(f"unsupported major type: {major}")
 
 
-def loads(data: bytes):
+def loads(data: bytes) -> Any:
     if not isinstance(data, (bytes, bytearray)):
         raise CBORError("CBOR input must be bytes")
     dec = _Decoder(bytes(data))

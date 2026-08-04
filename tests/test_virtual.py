@@ -1,9 +1,28 @@
-"""Virtual authenticator tests — Section 6 of the spec (software stand-in)."""
+"""Virtual authenticator tests — Section 6 of the txAuthAgent spec (v0.4).
+
+The VirtualAuthenticator simulates a CTAP 2.2+ hardware security key running
+the WebAuthn ``sign`` extension: a signing key pair that is separate from the
+credential key pair, deterministically re-derived from a key handle, with the
+UP/UV policy fixed at key creation.
+"""
 
 import pytest
 
-from txauthagent.extension import ALG_EDDSA, ALG_ES256, EXTENSION_ID, decode_output_cbor
-from txauthagent.virtual import VirtualAuthenticator, generate_credential_id
+from cryptography.hazmat.primitives.asymmetric import ec
+
+from txauthagent import cbor
+from txauthagent.extension import (
+    ALG_EDDSA,
+    ALG_ES256,
+    EXTENSION_ID,
+    FLAG_REQUIRE_UP,
+    FLAG_REQUIRE_UV,
+    FLAG_UNATTENDED,
+    SIGN_EXTENSION_ID,
+    parse_profile_output,
+    parse_sign_output,
+)
+from txauthagent.virtual import SignKeyHandle, VirtualAuthenticator
 
 from helpers import make_payload
 
@@ -11,58 +30,215 @@ from helpers import make_payload
 def test_es256_is_default_algorithm():
     key = VirtualAuthenticator()
     assert key.algorithm == ALG_ES256
+    key.register()
     blob = key.sign_action_cbor(make_payload())
-    entry = decode_output_cbor(blob)[EXTENSION_ID]
-    assert entry["algorithm"] == ALG_ES256
-    assert len(entry["agent_action_sig"]) in (64, 70, 71, 72)  # DER-encoded ECDSA
+    entry = decode_and_get(blob)
+    assert entry["txAuthAgent"]["algorithm"] == ALG_ES256
 
 
-def test_eddsa_signing_produces_extension_output():
-    key = VirtualAuthenticator(algorithm=ALG_EDDSA)
-    blob = key.sign_action_cbor(make_payload())
-    outputs = decode_output_cbor(blob)
-    entry = outputs[EXTENSION_ID]
-    assert entry["algorithm"] == ALG_EDDSA
-    assert entry["flags"]["up"] is True
-    assert len(entry["agent_action_sig"]) == 64  # Ed25519 sig size
+def decode_and_get(blob):
+    outputs = cbor.loads(blob)
+    return {
+        "sign": parse_sign_output(outputs),
+        "txAuthAgent": parse_profile_output(outputs),
+    }
 
 
-def test_es256_signing():
-    key = VirtualAuthenticator(algorithm=ALG_ES256)
-    blob = key.sign_action_cbor(make_payload())
-    entry = decode_output_cbor(blob)[EXTENSION_ID]
-    assert entry["algorithm"] == ALG_ES256
-    assert len(entry["agent_action_sig"]) in (64, 70, 71, 72)  # DER-encoded ECDSA
+def test_register_returns_wrapped_generated_key():
+    auth = VirtualAuthenticator()
+    out = auth.register(algorithms=[ALG_ES256])
+    assert SIGN_EXTENSION_ID in out
+    generated = out[SIGN_EXTENSION_ID]["generatedKey"]
+    assert generated["algorithm"] == ALG_ES256
+    assert isinstance(generated["publicKey"], bytes)  # COSE_Key
+    assert isinstance(generated["attestationObject"], bytes)
 
 
-def test_tap_required():
-    key = VirtualAuthenticator()
-    with pytest.raises(ValueError, match="tap"):
-        key.sign_action(make_payload(), tap=False)
+def test_signing_key_is_separate_from_credential_key():
+    auth = VirtualAuthenticator()
+    auth.register()
+    # The published signing public key must NOT be the WebAuthn credential key.
+    assert auth.public_key_pem != auth.credential_public_key_pem
 
 
-def test_rp_id_hash_is_sha256():
-    import hashlib
-    key = VirtualAuthenticator(rp_id="empirelabs.com.au")
-    entry = key.sign_action(make_payload())
-    assert entry["rp_id_hash"] == hashlib.sha256(b"empirelabs.com.au").digest()
+def test_signature_deterministic_stateless_rederivation():
+    """The signing key is deterministically re-derived from the key handle.
+
+    The authenticator does not need to store the key: a signature produced in
+    one call must verify against the key published at registration — across
+    calls. (ECDSA randomizes k per signature, so we check key stability, not
+    byte equality; Ed25519 is deterministic, so it must be byte-identical.)
+    """
+    from cryptography.hazmat.primitives import hashes
+
+    from txauthagent.verify import load_public_key_pem
+
+    auth = VirtualAuthenticator()
+    auth.register()
+    payload = make_payload()
+
+    s1 = auth.sign_action(payload)[SIGN_EXTENSION_ID]["signature"]
+    s2 = auth.sign_action(payload)[SIGN_EXTENSION_ID]["signature"]
+
+    # Both signatures verify against the SAME published key → same key.
+    public_key = load_public_key_pem(auth.public_key_pem, ALG_ES256)
+    assert isinstance(public_key, ec.EllipticCurvePublicKey)
+    public_key.verify(s1, compute_digest(payload), ec.ECDSA(hashes.SHA256()))
+    public_key.verify(s2, compute_digest(payload), ec.ECDSA(hashes.SHA256()))
+
+    # Ed25519 is deterministic (RFC 8032) — byte-identical signatures.
+    auth_ed = VirtualAuthenticator(algorithm=ALG_EDDSA)
+    auth_ed.register(algorithms=[ALG_EDDSA])
+    e1 = auth_ed.sign_action(payload)[SIGN_EXTENSION_ID]["signature"]
+    e2 = auth_ed.sign_action(payload)[SIGN_EXTENSION_ID]["signature"]
+    assert e1 == e2
 
 
-def test_uv_flag_optional():
-    key = VirtualAuthenticator()
-    entry = key.sign_action(make_payload(), user_verified=True)
-    assert entry["flags"]["uv"] is True
-    entry2 = key.sign_action(make_payload(), user_verified=False)
-    assert entry2["flags"]["uv"] is False
+def compute_digest(payload):
+    from txauthagent.digest import compute_action_digest
+
+    return compute_action_digest(payload)
 
 
-def test_credential_id_generation():
-    cid = generate_credential_id()
-    assert isinstance(cid, bytes)
-    assert len(cid) == 32
+def test_sign_output_contains_raw_signature_and_profile():
+    auth = VirtualAuthenticator()
+    auth.register()
+    outputs = auth.sign_action(make_payload())
+    sign_entry = parse_sign_output(outputs)
+    record = parse_profile_output(outputs)
+    # Raw signature: DER-encoded ECDSA, ~70-72 bytes for P-256
+    assert 68 <= len(sign_entry["signature"]) <= 72
+    # The layering must agree byte-for-byte
+    assert sign_entry["signature"] == record["agent_action_sig"]
+    assert len(record["action_digest"]) == 32
+    assert record["flags"]["up"] is True
+    assert record["flags"]["uv"] is False
+    assert record["agent_cid"] == auth.credential_id
 
 
-def test_public_key_pem():
-    key = VirtualAuthenticator()
-    pem = key.public_key_pem
-    assert pem.startswith(b"-----BEGIN PUBLIC KEY-----")
+def test_key_handle_roundtrip_explicit():
+    auth = VirtualAuthenticator()
+    auth.register()
+    outputs = auth.sign_action(make_payload(), key_handle=auth.key_handle)
+    assert parse_sign_output(outputs)["signature"]
+
+
+def test_key_handle_integrity_fails_on_tamper():
+    auth = VirtualAuthenticator()
+    auth.register()
+    tampered_ref = bytearray(auth.key_handle.cose_key_ref)
+    # Flip a byte inside the kid (first 32 bytes = HMAC, then kidParams)
+    tampered_ref[10] ^= 0xFF
+    bad_handle = SignKeyHandle(bytes(tampered_ref))
+    with pytest.raises(ValueError, match="not generated by this authenticator"):
+        auth.sign_action(make_payload(), key_handle=bad_handle)
+
+
+def test_key_handle_from_other_authenticator_fails():
+    auth1 = VirtualAuthenticator()
+    auth2 = VirtualAuthenticator()
+    auth1.register()
+    auth2.register()
+    with pytest.raises(ValueError, match="not generated by this authenticator"):
+        auth2.sign_action(make_payload(), key_handle=auth1.key_handle)
+
+
+def test_require_up_policy_enforced():
+    auth = VirtualAuthenticator(flags=FLAG_REQUIRE_UP)
+    auth.register()
+    with pytest.raises(ValueError, match="user presence required"):
+        auth.sign_action(make_payload(), tap=False)
+    # With the tap, it signs.
+    auth.sign_action(make_payload(), tap=True)
+
+
+def test_require_uv_policy_enforced():
+    auth = VirtualAuthenticator(flags=FLAG_REQUIRE_UV)
+    auth.register()
+    with pytest.raises(ValueError, match="user verification required"):
+        auth.sign_action(make_payload(), tap=True, user_verified=False)
+    # With tap + PIN/biometric, it signs.
+    out = auth.sign_action(make_payload(), tap=True, user_verified=True)
+    assert parse_profile_output(out)["flags"]["uv"] is True
+
+
+def test_unattended_policy_requires_no_gesture():
+    auth = VirtualAuthenticator(flags=FLAG_UNATTENDED)
+    auth.register()
+    out = auth.sign_action(make_payload(), tap=False)
+    record = parse_profile_output(out)
+    assert record["flags"]["up"] is False
+
+
+def test_invalid_policy_rejected_at_registration():
+    auth = VirtualAuthenticator()
+    with pytest.raises(ValueError, match="policy"):
+        auth.register(flags=0b010)
+
+
+def test_unsupported_algorithm_rejected():
+    auth = VirtualAuthenticator()
+    with pytest.raises(ValueError, match="algorithm"):
+        auth.register(algorithms=[-37])  # PS256, unsupported
+
+
+def test_ed25519_signing():
+    auth = VirtualAuthenticator(algorithm=ALG_EDDSA)
+    auth.register(algorithms=[ALG_EDDSA])
+    outputs = auth.sign_action(make_payload())
+    record = parse_profile_output(outputs)
+    assert record["algorithm"] == ALG_EDDSA
+    assert len(record["agent_action_sig"]) == 64  # Ed25519 raw signature
+
+
+def test_attestation_object_structure():
+    auth = VirtualAuthenticator()
+    out = auth.register(algorithms=[ALG_ES256])
+    generated = out[SIGN_EXTENSION_ID]["generatedKey"]
+    att = cbor.loads(generated["attestationObject"])
+    assert att["fmt"] == "packed"
+    assert isinstance(att["authData"], bytes)
+    assert isinstance(att["attStmt"], dict)
+    # authData: rpIdHash(32) || flags(1) || signCount(4) || attestedCredentialData || extensions
+    auth_data = att["authData"]
+    assert len(auth_data) >= 37
+    flags_byte = auth_data[32]
+    # Registration with attested data + extensions: UP | UV | AT | ED
+    assert flags_byte & 0x40  # AT
+    assert flags_byte & 0x80  # ED
+    assert flags_byte & 0x01  # UP
+    # Attested credential data has an empty credential id (signing key only)
+    assert auth_data[37 + 16 : 37 + 16 + 2] == b"\x00\x00"
+
+
+def test_signature_covers_only_the_digest():
+    """The raw signature is over the tbs digest — not wrapped in authData.
+
+    This is what makes third-party verification possible: a verifier with the
+    published signing key and the payload can recompute the digest and verify
+    without any secret RP data.
+    """
+    from cryptography.hazmat.primitives import hashes
+
+    from txauthagent.digest import compute_action_digest
+    from txauthagent.verify import load_public_key_pem
+
+    auth = VirtualAuthenticator()
+    auth.register()
+    payload = make_payload()
+    outputs = auth.sign_action(payload)
+    record = parse_profile_output(outputs)
+    signature = record["agent_action_sig"]
+    digest = compute_action_digest(payload)
+    public_key = load_public_key_pem(auth.public_key_pem, record["algorithm"])
+    # Signature verifies over the digest...
+    if record["algorithm"] == ALG_EDDSA:
+        public_key.verify(signature, digest)
+    else:
+        public_key.verify(signature, digest, ec.ECDSA(hashes.SHA256()))
+    # ...and fails over digest + any extra bytes (no authenticatorData wrapper)
+    with pytest.raises(Exception):
+        if record["algorithm"] == ALG_EDDSA:
+            public_key.verify(signature, digest + b"\x00")
+        else:
+            public_key.verify(signature, digest + b"\x00", ec.ECDSA(hashes.SHA256()))
