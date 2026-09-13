@@ -19,6 +19,11 @@ classifiers = [
     "Topic :: Security :: Cryptography",
 ]
 
+dependencies = ["cryptography>=41"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
 [project.scripts]
 txauthagent = "txauthagent.cli:main"
 
