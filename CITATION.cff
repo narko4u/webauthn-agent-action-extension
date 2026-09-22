@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you implement or describe this profile, please cite it as below."
+title: "txAuthAgent — WebAuthn Agent Authorization Application Profile"
+abstract: >-
+  An application profile on top of the W3C WebAuthn `sign` extension that
+  defines hardware-backed, human-consented authorization for autonomous AI
+  agent actions. The profile specifies the action payload schema, the canonical
+  digest passed as the `tbs`, the ceremony wiring, and the verification rules
+  that let any party verify an agent authorization against the signing public
+  key published at registration — without the pairwise WebAuthn credential ever
+  being used for third-party verification.
+type: software
+authors:
+  - name: "Empire Labs Pty Ltd"
+    country: AU
+version: "0.4"
+date-released: "2026-08-04"
+license: MIT
+repository-code: "https://github.com/narko4u/webauthn-agent-action-extension"
+url: "https://github.com/narko4u/webauthn-agent-action-extension"
+keywords:
+  - webauthn
+  - passkeys
+  - fido2
+  - agent-authorization
+  - ai-agent-governance
+  - hardware-attestation
+  - eu-ai-act

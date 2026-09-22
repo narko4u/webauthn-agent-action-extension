@@ -262,11 +262,49 @@ reviewers named above.
 Full attribution, and the statement that none of it implies review or endorsement, is in
 [the specification](spec/webauthn-agent-authorization-extension-draft-v0.2.md#acknowledgments).
 
+## Citing this work
+
+If you implement or describe this profile, please cite it by its canonical
+location and revision, e.g.:
+
+> txAuthAgent — WebAuthn Agent Authorization Application Profile, v0.4,
+> Empire Labs Pty Ltd (commit `cab0dcb`).
+> https://github.com/narko4u/webauthn-agent-action-extension
+
+A machine-readable citation is in [CITATION.cff](CITATION.cff). Authorship and
+revision history — including why the filename says `v0.2` while the content is
+`v0.4` — are recorded in [PROVENANCE.md](PROVENANCE.md).
+
+Naming, stated plainly: **`txAuthAgent` is the name of this application
+profile.** The WebAuthn *extension identifier* it builds on is **`sign`**
+([w3c/webauthn PR #2078](https://github.com/w3c/webauthn/pull/2078)), which is
+not ours. No WebAuthn extension identifier is proposed or registered under the
+name `txAuthAgent`.
+
 ## License
 
-MIT — specification text and reference implementation. Explanatory material
-CC BY 4.0. Built by **Empire Labs Pty Ltd** as part of the **Empire Stack**
-(ACI / AIP / AJSON) — three open specifications for autonomous agent commerce.
+MIT — **specification text and reference implementation**, meaning the original
+material authored by Empire Labs Pty Ltd in this repository, and nothing else.
+Explanatory material (README and other prose) is CC BY 4.0. Built by **Empire
+Labs Pty Ltd** as part of the **Empire Stack** (ACI / AIP / AJSON) — three open
+specifications for autonomous agent commerce.
+
+### Third-party material
+
+This licence does not extend to, and exerts no claim over, any third-party work
+referenced here. Specifically:
+
+- the WebAuthn **`sign` extension** is specified upstream by the W3C Web
+  Authentication Working Group, under that group's contribution terms;
+- [webauthn-rs](https://github.com/kanidm/webauthn-rs) is licensed **MPL-2.0**;
+- [libfido2](https://github.com/Yubico/libfido2) carries its own terms;
+- [WebAuthn.io](https://webauthn.io) and the
+  [FIDO Alliance](https://fidoalliance.org) specifications carry their own.
+
+These projects are **referenced, not incorporated**, and each retains its own
+licence. Naming them is an expression of thanks only; it implies no review,
+endorsement, approval or affiliation on their part. See
+[§ Acknowledgments](#acknowledgments).
 
 www.empirelabs.com.au
 
