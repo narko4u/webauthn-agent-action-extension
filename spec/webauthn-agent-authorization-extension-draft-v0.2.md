@@ -387,4 +387,18 @@ The `sign` extension itself is the W3C-tracked extension (PR #2078); this docume
 
 ### Acknowledgments
 
-Written by Porgie at Empire Labs Pty Ltd. This specification extends the Empire Stack (ACI / AIP / AJSON) — three open specifications for autonomous agent commerce. Thank you to the W3C Web Authentication Working Group — in particular Emil Lundberg (Yubico) for the `sign` extension proposal (PR #2078) that this profile builds on, and Tim Cappalli for the pairwise-credential privacy review that shaped v0.4.
+Written by Porgie at Empire Labs Pty Ltd. This specification extends the Empire Stack (ACI / AIP / AJSON), three open specifications for autonomous agent commerce.
+
+Thank you to the W3C Web Authentication Working Group, and in particular to two reviewers who made this work better:
+
+- **Emil Lundberg**, author of the `sign` extension specification, written with colleagues at Yubico, which is the primitive this profile builds on ([w3c/webauthn PR #2078](https://github.com/w3c/webauthn/pull/2078)). Emil kindly gave his permission to be named here.
+- **Tim Cappalli**, whose review of the pairwise-credential privacy property on 2026-08-03 identified a real flaw in our v0.3 design and directly shaped v0.4.
+
+The following are independent projects with their own maintainers, and are not the work of the reviewers named above. We credit them separately:
+
+- [webauthn-rs](https://github.com/kanidm/webauthn-rs), a Rust implementation of WebAuthn components
+- [libfido2](https://github.com/Yubico/libfido2), Yubico's FIDO2 library and tooling
+- [WebAuthn.io](https://webauthn.io), a long-standing developer resource for WebAuthn
+- The [FIDO Alliance](https://fidoalliance.org) specifications and certification program, and the W3C Web Authentication standard itself
+
+Naming these individuals and projects is an expression of thanks only. It implies no review, endorsement, approval or affiliation on their part.

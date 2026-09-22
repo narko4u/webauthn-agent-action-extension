@@ -248,6 +248,20 @@ txauthagent/
 tests/                   pytest suite (105 tests incl. cbor2 interop)
 ```
 
+## Acknowledgments
+
+This profile builds on the WebAuthn [`sign` extension](https://github.com/w3c/webauthn/pull/2078)
+by **Emil Lundberg**, written with colleagues at Yubico, and on the pairwise-credential privacy
+review by **Tim Cappalli** that shaped v0.4.
+
+[webauthn-rs](https://github.com/kanidm/webauthn-rs), [libfido2](https://github.com/Yubico/libfido2),
+[WebAuthn.io](https://webauthn.io) and the [FIDO Alliance](https://fidoalliance.org) specifications
+are independent projects with their own maintainers, credited separately and not the work of the
+reviewers named above.
+
+Full attribution, and the statement that none of it implies review or endorsement, is in
+[the specification](spec/webauthn-agent-authorization-extension-draft-v0.2.md#acknowledgments).
+
 ## License
 
 MIT — specification text and reference implementation. Explanatory material
