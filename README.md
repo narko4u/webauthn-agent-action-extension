@@ -201,7 +201,7 @@ in spec §3.1.)
 
 | Component | Minimum |
 |-----------|---------|
-| Authenticator | CTAP 2.2+ with the `sign` extension (in W3C ratification, PR #2078) |
+| Authenticator | CTAP 2.2+ with the `sign` extension (open draft PR #2078 — unmerged, not in any ratified specification) |
 | Algorithm | ES256 (COSE -7) primary — universally supported; EdDSA (COSE -8) where device-supported |
 | Transport | USB-C, NFC, BLE |
 
@@ -301,9 +301,14 @@ referenced here. Specifically:
 - [WebAuthn.io](https://webauthn.io) and the
   [FIDO Alliance](https://fidoalliance.org) specifications carry their own.
 
-These projects are **referenced, not incorporated**, and each retains its own
-licence. Naming them is an expression of thanks only; it implies no review,
-endorsement, approval or affiliation on their part. See
+These projects and bodies are **referenced, not incorporated**, and each retains
+its own licence. Naming them is an expression of thanks only; it implies no
+review, endorsement, approval, affiliation or membership on their part. Nothing
+here is a deliverable of, or has been reviewed or approved by, the W3C, the W3C
+WebAuthn Working Group, the FIDO Alliance or any other standards body. FIDO,
+FIDO2 and the FIDO Alliance are trademarks of FIDO Alliance, Inc.; YubiKey,
+Ledger and Nitrokey are trademarks of their respective owners and are named
+descriptively only — no sponsorship or certification is claimed. See
 [§ Acknowledgments](#acknowledgments).
 
 www.empirelabs.com.au

@@ -1,12 +1,17 @@
 # WebAuthn Agent Authorization — Application Profile Specification v0.4
 
 **Profile Tag:** `txauthagent/sign/v1`
-**Extension Identifier (underlying):** `sign` (w3c/webauthn PR #2078)
+**Extension Identifier (this profile):** `txAuthAgent` — **not registered** (see below)
+**Primitive extension (not ours):** `sign` — w3c/webauthn PR #2078, proposed by Emil Lundberg / Yubico
 
 **Status:** Draft v0.4 — application profile on the WebAuthn `sign` extension; addresses reviewer feedback on pairwise credential privacy (2026-08-04)
 **Proposed by:** Empire Labs Pty Ltd
 **Target:** W3C WebAuthn Working Group (profile of the `sign` extension proposed in PR #2078)
-**Specification Required:** Yes (Expert Review per WebAuthn §12.4)
+**Registration status:** Not filed. If filed, the procedure is **Specification Required**
+(RFC 8809 §2.2.1), submitted to `webauthn-reg-review@ietf.org` or per
+https://www.iana.org/assignments/webauthn. An earlier notification of this work was sent to
+the WebAuthn WG discussion list (`public-webauthn@w3.org`) on 2026-08-01. That list is not
+the registration channel, and no registration request has been made.
 **Draft Date:** 1 August 2026 (v0.2); reframed 4 August 2026 (v0.4)
 **License:** MIT (specification text) / CC BY 4.0 (explanatory material)
 **Reference Implementation:** https://github.com/narko4u/webauthn-agent-action-extension
@@ -74,7 +79,7 @@ The `sign` extension (w3c/webauthn PR #2078) is the right primitive but is delib
 2. **How is verification anchored?** The extension returns a raw signature. txAuthAgent defines where the signing public key comes from (the registration `generatedKey` record + attestation), how the digest is recomputed, and which flags (up/uv) must hold.
 3. **What is the audit record?** txAuthAgent defines the `txAuthAgent` extension output: a self-contained record pairing the signature, the digest, the credential binding, the algorithm and the observed flags — what an auditor stores and replays.
 
-An application profile also has a practical benefit: it can be specified and deployed **in parallel** with the extension's ratification, and can fall back to a challenge-carrier bootstrap on hardware that has not yet received sign-extension firmware (§3.4).
+An application profile also has a practical benefit: it can be specified and deployed **in parallel** with the extension's standardisation, and can fall back to a challenge-carrier bootstrap on hardware that has not yet received sign-extension firmware (§3.4).
 
 ### 3.3 Why not txAuthSimple / txAuthGeneric?
 
@@ -262,7 +267,7 @@ Any third party can verify agent action signatures **without interacting with th
 
 | Component | Minimum Requirement |
 |-----------|-------------------|
-| Authenticator | CTAP 2.2+ with the `sign` extension (in ratification; PR #2078) |
+| Authenticator | CTAP 2.2+ with the `sign` extension (open draft pull request #2078 — unmerged, not in any ratified specification) |
 | Algorithm | ES256 (COSE -7) primary — universally supported; EdDSA (COSE -8) where device-supported |
 | Transport | USB-C, NFC, or BLE |
 
@@ -401,4 +406,13 @@ The following are independent projects with their own maintainers, and are not t
 - [WebAuthn.io](https://webauthn.io), a long-standing developer resource for WebAuthn
 - The [FIDO Alliance](https://fidoalliance.org) specifications and certification program, and the W3C Web Authentication standard itself
 
-Naming these individuals and projects is an expression of thanks only. It implies no review, endorsement, approval or affiliation on their part.
+Naming these individuals, projects and bodies is an expression of thanks only. It implies no
+review, endorsement, approval, affiliation or membership on their part. Nothing in this
+document is a deliverable of the W3C, the W3C WebAuthn Working Group, the FIDO Alliance or any
+other standards body, and no such body has reviewed or approved it.
+
+**Trademarks.** FIDO, FIDO2 and the FIDO Alliance are trademarks of FIDO Alliance, Inc. The
+Web Authentication specification is a W3C Recommendation. Product names (YubiKey, Ledger,
+Nitrokey) are trademarks of their respective owners. They are used here descriptively, to name
+the specifications and hardware this profile interoperates with, and no sponsorship or
+certification is claimed. In particular, nothing here is "FIDO Certified".

@@ -55,7 +55,13 @@ __all__ = [
     "decode_output_cbor",
 ]
 
+# The profile's own client-extension identifier: the key this profile uses in
+# AuthenticationExtensionsClientInputsJSON / ...ClientOutputsJSON.
+# NOT registered in the IANA WebAuthn Extension Identifiers registry
+# (procedure: Specification Required, RFC 8809 sec 2.2.1) -- profile-local.
 EXTENSION_ID = "txAuthAgent"
+# The primitive this profile is built on. NOT ours: w3c/webauthn PR #2078
+# (Emil Lundberg / Yubico), an open draft -- not merged, not ratified.
 SIGN_EXTENSION_ID = "sign"
 
 # Profile version tag embedded in the client input so verifiers can pin the

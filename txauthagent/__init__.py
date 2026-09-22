@@ -1,7 +1,9 @@
-"""txauthagent — Reference implementation of the txAuthAgent WebAuthn extension.
+"""txauthagent — Reference implementation of the txAuthAgent agent-authorization profile.
 
-Hardware-backed authorization for AI agent actions (proposal by Empire Labs Pty Ltd,
-under review with the W3C WebAuthn Working Group for IANA registration).
+Hardware-backed authorization for AI agent actions. txAuthAgent is an application profile
+built on the WebAuthn `sign` extension (w3c/webauthn PR #2078, an open draft — not ours and
+not yet ratified). The profile's own client-extension identifier, `txAuthAgent`, is NOT
+registered in the IANA WebAuthn Extension Identifiers registry; treat it as profile-local.
 
 The extension lets a hardware authenticator (YubiKey, Ledger, Nitrokey, ...) sign an
 *agent action payload* — the agent's identity (ACI URI), the action to be performed,
