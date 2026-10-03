@@ -358,7 +358,7 @@ The `sign` extension itself is the W3C-tracked extension (PR #2078); this docume
 
 ---
 
-## 10. Sovereign Review Decisions (2026-08-01 → 2026-08-04)
+## 10. Review Decisions (2026-08-01 → 2026-08-04)
 
 1. **ACI cross-reference:** `agent_identity` carries `aci_uri` + `agent_name`. **Decision:** Keep `aci_uri` as the required identity anchor. `aip_endpoint` and `agent_did` remain *optional* fields — embedding the full AIP endpoint at registration time creates a coupling that can go stale; the ACI document itself can expose the AIP endpoint dynamically.
 
@@ -374,8 +374,8 @@ The `sign` extension itself is the W3C-tracked extension (PR #2078); this docume
 
 ## 11. Revision History
 
-- **v0.1** — 2026-08-01: Draft for Sovereign review (Porgie).
-- **v0.2** — 2026-08-01: Sovereign review complete. Fixed section numbering, corrected CBOR field typos, added `algorithm` to the wire format, resolved open questions (§10), added reference implementation link. Cleared for public posting.
+- **v0.1** — 2026-08-01: Draft for internal review.
+- **v0.2** — 2026-08-01: Review complete. Fixed section numbering, corrected CBOR field typos, added `algorithm` to the wire format, resolved open questions (§10), added reference implementation link. Cleared for public posting.
 - **v0.3** — 2026-08-04: Expert-review hardening. (1) Algorithm policy corrected to **ES256 primary** — YubiKey 5 Series signs ES256 only; earlier Ed25519/ES384 claims removed. (2) Canonical digest redefined from canonical-JSON to **deterministic CBOR (RFC 8949 §4.2.1)**. (3) Added §3.1 gap analysis. File name retained as v0.2 for link stability; content is v0.3.
 - **v0.4** — 2026-08-04: **Application-profile reframe** in response to reviewer feedback (Tim Cappalli). (1) Adopted the W3C `sign` extension (PR #2078) as the cryptographic layer — separate attested signing key, raw signature over unaltered `tbs`. (2) Added §3.1 pairwise-privacy rationale: verification now targets the published signing key, never the pairwise credential. (3) Reworked §4 input / §5 output wire format (`sign.generateKey` / `sign.sign` + txAuthAgent profile context and audit record). (4) §5.4 signing-key attestation at registration; reference implementation + tests reworked to the sign-based flow (105 tests passing, cbor2 interop vectors). File name retained as v0.2 for link stability; content is v0.4.
 
@@ -387,7 +387,7 @@ The `sign` extension itself is the W3C-tracked extension (PR #2078); this docume
 
 ### Acknowledgments
 
-Written by Porgie at Empire Labs Pty Ltd. This specification extends the Empire Stack (ACI / AIP / AJSON), three open specifications for autonomous agent commerce.
+Written by Edward Wade at Empire Labs Pty Ltd. This specification extends the Empire Stack (ACI / AIP / AJSON), three open specifications for autonomous agent commerce.
 
 Thank you to the W3C Web Authentication Working Group, and in particular to two reviewers who made this work better:
 
